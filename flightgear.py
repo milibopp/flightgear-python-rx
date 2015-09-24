@@ -75,7 +75,7 @@ class FGTelnet(Telnet):
         # Everything preceding it is the response.
         return split(resp, '\n')[:-1]
 
-class FlightGear:
+class FlightGear(object):
     """FlightGear interface class.
 
     An instance of this class represents a connection to a FlightGear telnet
@@ -148,4 +148,12 @@ class FlightGear:
     def view_prev(self):
         #move to next view
         self.telnet.set( "/command/view/prev", "true")
+
+    @property
+    def starter(self):
+        return self["/controls/switches/starter"]
+
+    @starter.setter
+    def starter(self, value):
+        self["/controls/switches/starter"] = "true" if value else "false"
 
