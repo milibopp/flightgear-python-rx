@@ -99,9 +99,11 @@ class FlightGear(object):
     def __init__(self, telnet):
         self.telnet = telnet
 
-    def __getitem__(self,key):
+    def __getitem__(self, key):
         """Get a FlightGear property value.
+
         Where possible the value is converted to the equivalent Python type.
+
         """
         s = self.telnet.get(key)[0]
         match = re.compile('[^=]*=\s*\'([^\']*)\'\s*([^\r]*)\r').match(s)
@@ -133,3 +135,6 @@ class FlightGear(object):
         self.telnet.set( "/command/view/prev", "true")
 
     starter = fg_property("/controls/switches/starter", print_bool)
+    rudder = fg_property("/controls/flight/rudder")
+    flaps = fg_property("/controls/flight/flaps")
+    throttle = fg_property("/controls/engines/engine/throttle")
