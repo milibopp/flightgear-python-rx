@@ -62,6 +62,20 @@ class FGTelnet(Telnet):
         return split(resp, '\n')[:-1]
 
 
+def fg_property(path, converter=None):
+    """FlightGear property for a given path"""
+    converter = converter or (lambda x: x)
+    def getter(self):
+        return self[path]
+    def setter(self, value):
+        self[path] = converter(value)
+    return property(getter, setter)
+
+
+def print_bool(value):
+    return "true" if value else "false"
+
+
 class FlightGear(object):
     """FlightGear interface class.
 
@@ -118,11 +132,4 @@ class FlightGear(object):
         #move to next view
         self.telnet.set( "/command/view/prev", "true")
 
-    @property
-    def starter(self):
-        return self["/controls/switches/starter"]
-
-    @starter.setter
-    def starter(self, value):
-        self["/controls/switches/starter"] = "true" if value else "false"
-
+    starter = fg_property("/controls/switches/starter", print_bool)
