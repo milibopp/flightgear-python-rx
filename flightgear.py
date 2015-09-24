@@ -9,71 +9,58 @@ __all__ = ["FlightGear"]
 
 CRLF = '\r\n'
 
+
 class FGTelnet(Telnet):
-    def __init__(self,host,port):
-        Telnet.__init__(self,host,port)
-        self.prompt = []
-        self.prompt.append( re.compile('/[^>]*> ') )
+    def __init__(self, host="localhost", port="5401"):
+        Telnet.__init__(self, host, port)
+        self.prompt = [re.compile('/[^>]*> ')]
         self.timeout = 5
-        #Telnet.set_debuglevel(self,2)
 
-    def help(self):
-        return
+    def __enter__(self):
+        return self
 
-    def ls(self,dir=None):
-        """
-        Returns a list of properties.
-        """
-        if dir == None:
-            self._putcmd('ls')
-        else:
-            self._putcmd('ls %s' % dir )
-        return self._getresp()
+    def __exit__(self, _type, _value, _traceback):
+        self.close()
+
+    def ls(self, directory=None):
+        """Returns a list of properties"""
+        return self.send_command(
+            'ls {}'.format(directory) if directory else 'ls')
 
     def dump(self):
         """Dump current state as XML."""
-        self._putcmd('dump')
-        return self._getresp()
+        return self.send_command('dump')
 
-    def cd(self, dir):
+    def cd(self, directory):
         """Change directory."""
-        self._putcmd('cd ' + dir)
-        self._getresp()
-        return
+        self.send_command('cd ' + directory)
 
     def pwd(self):
         """Display current path."""
-        self._putcmd('pwd')
-        return self._getresp()
+        return self.send_command('pwd')
 
-    def get(self,var):
+    def get(self, var):
         """Retrieve the value of a parameter."""
-        self._putcmd('get %s' % var )
-        return self._getresp()
+        return self.send_command('get %s' % var )
 
-    def set(self,var,value):
+    def set(self, var, value):
         """Set variable to a new value"""
-        self._putcmd('set %s %s' % (var,value))
-        self._getresp() # Discard response
+        self.send_command('set %s %s' % (var, value))
 
     def quit(self):
         """Terminate connection"""
-        self._putcmd('quit')
+        self.send_command('quit')
         self.close()
-        return
-
-    # Internal: send one command to FlightGear
-    def _putcmd(self,cmd):
+    
+    def send_command(self, cmd):
         cmd = cmd + CRLF;
         Telnet.write(self, cmd)
-        return
+        return self.get_response()
 
-    # Internal: get a response from FlightGear
-    def _getresp(self):
-        (i,match,resp) = Telnet.expect(self, self.prompt, self.timeout)
-        # Remove the terminating prompt.
-        # Everything preceding it is the response.
+    def get_response(self):
+        _i, _match, resp = Telnet.expect(self, self.prompt, self.timeout)
         return split(resp, '\n')[:-1]
+
 
 class FlightGear(object):
     """FlightGear interface class.
@@ -92,54 +79,36 @@ class FlightGear(object):
     heading = fg['/orientation/heading-deg']
 
     Other non-property related methods
+
     """
 
-    def __init__( self, host = 'localhost', port = 5500 ):
-        try:
-            self.telnet = FGTelnet(host,port)
-        except socket.error, msg:
-            self.telnet = None
-            raise socket.error, msg
-
-    def __del__(self):
-        # Ensure telnet connection is closed cleanly.
-        self.quit();
+    def __init__(self, telnet):
+        self.telnet = telnet
 
     def __getitem__(self,key):
         """Get a FlightGear property value.
         Where possible the value is converted to the equivalent Python type.
         """
         s = self.telnet.get(key)[0]
-        match = re.compile( '[^=]*=\s*\'([^\']*)\'\s*([^\r]*)\r').match( s )
+        match = re.compile('[^=]*=\s*\'([^\']*)\'\s*([^\r]*)\r').match(s)
         if not match:
             return None
-        value,type = match.groups()
-        #value = match.group(1)
-        #type = match.group(2)
+        value, data_type = match.groups()
         if value == '':
             return None
 
-        if type == '(double)':
+        if data_type == '(double)':
             return float(value)
-        elif type == '(int)':
+        elif data_type == '(int)':
             return int(value)
-        elif type == '(bool)':
-            if value == 'true':
-                return 1
-            else:
-                return 0
+        elif data_type == '(bool)':
+            return value == 'true'
         else:
             return value
 
     def __setitem__(self, key, value):
         """Set a FlightGear property value."""
-        self.telnet.set( key, value )
-
-    def quit(self):
-        """Close the telnet connection to FlightGear."""
-        if self.telnet:
-            self.telnet.quit()
-            self.telnet = None
+        self.telnet.set(key, value)
 
     def view_next(self):
         #move to next view
