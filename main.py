@@ -8,8 +8,10 @@ def conn(func):
     return wrapped
 
 @conn
-def read_pos(fg):
-    print fg.position
+def read_data(fg):
+    print(fg.position)
+    print(fg.orientation)
+    print(fg.velocities)
 
 @conn
 def main(fg):
@@ -21,4 +23,4 @@ def main(fg):
     fg.throttle = 1.0
 
 if __name__ == "__main__":
-    read_pos()
+    read_data()

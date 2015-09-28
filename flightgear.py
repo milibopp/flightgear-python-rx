@@ -85,10 +85,10 @@ def fg_readwrite(path, converter=None):
     return property(getter, setter)
 
 
-def fg_readonly(path):
+def fg_readonly_dump(path):
     """FlightGear read-only property for given path"""
     def getter(self):
-        return self[path]
+        return self.telnet.dump(path)
     return property(getter)
 
 
@@ -149,6 +149,6 @@ class FlightGear(object):
     flaps = fg_readwrite("/controls/flight/flaps")
     throttle = fg_readwrite("/controls/engines/engine/throttle")
 
-    @property
-    def position(self):
-        return self.telnet.dump("/position")
+    position = fg_readonly_dump("/position")
+    orientation = fg_readonly_dump("/orientation")
+    velocities = fg_readonly_dump("/velocities")
