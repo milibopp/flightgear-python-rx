@@ -91,64 +91,69 @@ def fg_readonly_dump(path):
         return self.telnet.dump(path)
     return property(getter)
 
+def fg_readonly_ls(path, prop_name):
+    def getter(self):
+        for line in self.telnet.ls(path):
+            match = parse_property_line(line)
+            if not match:
+                continue
+            name, value = match
+            if name == prop_name:
+                return value
+    return property(getter)
+
 
 def print_bool(value):
     return "true" if value else "false"
 
 
-property_line_pattern = re.compile('[^=]*=\s*\'([^\']*)\'\s*\(([^\r]*)\)')
+property_line_pattern = re.compile('([^=]*)=\s*\'([^\']*)\'\s*\(([^\r]*)\)')
 
 def parse_property_line(line):
     match = property_line_pattern.match(line)
     if match:
-        value, data_type = match.groups()
-        return parse_property(value, data_type)
+        name, value, data_type = match.groups()
+        return name.strip(), parse_property(value, data_type)
 
 
 class FlightGear(object):
-    """FlightGear interface class.
-
-    An instance of this class represents a connection to a FlightGear telnet
-    server.
-
-    Properties are accessed using a dictionary style interface:
-    For example:
-
-    # Connect to flightgear telnet server.
-    fg = FlightGear('myhost', 5500)
-    # parking brake on
-    fg['/controls/gear/brake-parking'] = 1
-    # Get current heading
-    heading = fg['/orientation/heading-deg']
-
-    Other non-property related methods
-
-    """
+    """Convenient FlightGear interface class"""
 
     def __init__(self, telnet):
         self.telnet = telnet
 
     def __getitem__(self, key):
-        """Get a FlightGear property value"""
-        return parse_property_line(self.telnet.get(key)[0])
+        _, value = parse_property_line(self.telnet.get(key)[0])
+        return value
 
     def __setitem__(self, key, value):
-        """Set a FlightGear property value"""
         self.telnet.set(key, value)
 
     def view_next(self):
-        #move to next view
-        self.telnet.set( "/command/view/next", "true")
+        self.telnet.set("/command/view/next", "true")
 
     def view_prev(self):
-        #move to next view
-        self.telnet.set( "/command/view/prev", "true")
+        self.telnet.set("/command/view/prev", "true")
 
     starter = fg_readwrite("/controls/switches/starter", print_bool)
     rudder = fg_readwrite("/controls/flight/rudder")
+    aileron = fg_readwrite("/controls/flight/aileron")
+    elevator = fg_readwrite("/controls/flight/elevator")
     flaps = fg_readwrite("/controls/flight/flaps")
     throttle = fg_readwrite("/controls/engines/engine/throttle")
 
     position = fg_readonly_dump("/position")
     orientation = fg_readonly_dump("/orientation")
     velocities = fg_readonly_dump("/velocities")
+
+    indicated_altitude_ft = fg_readonly_ls(
+        "/instrumentation/altimeter", "indicated-altitude-ft")
+    indicated_airspeed_kt = fg_readonly_ls(
+        "/instrumentation/airspeed-indicator", "indicated-speed-kt")
+    indicated_roll_deg = fg_readonly_ls(
+        "/instrumentation/attitude-indicator", "indicated-roll-deg")
+    indicated_pitch_deg = fg_readonly_ls(
+        "/instrumentation/attitude-indicator", "indicated-pitch-deg")
+    indicated_heading_deg = fg_readonly_ls(
+        "/instrumentation/magnetic-compass", "indicated-heading-deg")
+    engine_running = fg_readonly_ls("/engines/engine", "running")

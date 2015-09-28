@@ -6,7 +6,7 @@ def test_parse_property():
     assert parse_property("true", "bool") is True
 
 def test_parse_property_line():
-    line1 = "/controls/flight/rudder = '0.5' (double)"
-    assert parse_property_line(line1) == 0.5
+    line1 = "setting-hpa = '13.5' (double)"
+    assert parse_property_line(line1) == ("setting-hpa", 13.5)
     line2 = "/controls/switches/starter = 'true' (bool)"
-    assert parse_property_line(line2) is True
+    assert parse_property_line(line2) == ("/controls/switches/starter", True)

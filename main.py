@@ -9,9 +9,10 @@ def conn(func):
 
 @conn
 def read_data(fg):
-    print(fg.position)
-    print(fg.orientation)
-    print(fg.velocities)
+    print(fg.indicated_roll_deg)
+    print(fg.indicated_pitch_deg)
+    print(fg.indicated_heading_deg)
+    print(fg.engine_running)
 
 @conn
 def main(fg):
