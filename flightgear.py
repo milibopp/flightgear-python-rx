@@ -2,9 +2,9 @@ from telnetlib import Telnet
 import sys
 import socket
 import re
-from string import split, join
 import time
 import xml.etree.ElementTree as etree
+from rx import Observable
 
 CRLF = '\r\n'
 
@@ -19,7 +19,7 @@ def parse_property(prop, type_desc):
 
 
 class FGTelnet(Telnet):
-    def __init__(self, host="localhost", port="5401"):
+    def __init__(self, host, port):
         Telnet.__init__(self, host, port)
         self.prompt = [re.compile('/[^>]*> ')]
         self.timeout = 5
@@ -72,7 +72,7 @@ class FGTelnet(Telnet):
 
     def get_response(self):
         _i, _match, resp = self.expect(self.prompt, self.timeout)
-        return split(resp, "\n")[:-1]
+        return resp.split("\n")[:-1]
 
 
 def fg_readwrite(path, converter=None):
@@ -119,8 +119,8 @@ def parse_property_line(line):
 class FlightGear(object):
     """Convenient FlightGear interface class"""
 
-    def __init__(self, telnet):
-        self.telnet = telnet
+    def __init__(self, host="localhost", port="5401"):
+        self.telnet = FGTelnet(host, port)
 
     def __getitem__(self, key):
         _, value = parse_property_line(self.telnet.get(key)[0])
