@@ -6,8 +6,6 @@ from string import split, join
 import time
 import xml.etree.ElementTree as etree
 
-__all__ = ["FlightGear", "FGTelnet"]
-
 CRLF = '\r\n'
 
 readers = {
@@ -98,6 +96,15 @@ def print_bool(value):
     return "true" if value else "false"
 
 
+property_line_pattern = re.compile('[^=]*=\s*\'([^\']*)\'\s*\(([^\r]*)\)')
+
+def parse_property_line(line):
+    match = property_line_pattern.match(line)
+    if match:
+        value, data_type = match.groups()
+        return parse_property(value, data_type)
+
+
 class FlightGear(object):
     """FlightGear interface class.
 
@@ -122,30 +129,11 @@ class FlightGear(object):
         self.telnet = telnet
 
     def __getitem__(self, key):
-        """Get a FlightGear property value.
-
-        Where possible the value is converted to the equivalent Python type.
-
-        """
-        s = self.telnet.get(key)[0]
-        match = re.compile('[^=]*=\s*\'([^\']*)\'\s*([^\r]*)\r').match(s)
-        if not match:
-            return None
-        value, data_type = match.groups()
-        if value == '':
-            return None
-
-        if data_type == '(double)':
-            return float(value)
-        elif data_type == '(int)':
-            return int(value)
-        elif data_type == '(bool)':
-            return value == 'true'
-        else:
-            return value
+        """Get a FlightGear property value"""
+        return parse_property_line(self.telnet.get(key)[0])
 
     def __setitem__(self, key, value):
-        """Set a FlightGear property value."""
+        """Set a FlightGear property value"""
         self.telnet.set(key, value)
 
     def view_next(self):
