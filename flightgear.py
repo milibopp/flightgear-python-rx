@@ -4,10 +4,20 @@ import socket
 import re
 from string import split, join
 import time
+import xml.etree.ElementTree as etree
 
-__all__ = ["FlightGear"]
+__all__ = ["FlightGear", "FGTelnet"]
 
 CRLF = '\r\n'
+
+readers = {
+    "double": float,
+    "int": int,
+    "bool": lambda s: s == "true",
+}
+
+def parse_property(prop, type_desc):
+    return readers.get(type_desc, lambda s: s)(prop)
 
 
 class FGTelnet(Telnet):
@@ -27,9 +37,14 @@ class FGTelnet(Telnet):
         return self.send_command(
             'ls {}'.format(directory) if directory else 'ls')
 
-    def dump(self):
+    def dump(self, path=None):
         """Dump current state as XML."""
-        return self.send_command('dump')
+        resp = self.send_command('dump ' + (path or ""))
+        root = etree.fromstring("".join(resp))
+        return {
+            elem.tag: parse_property(elem.text, elem.attrib["type"])
+            for elem in root
+        }
 
     def cd(self, directory):
         """Change directory."""
@@ -58,11 +73,11 @@ class FGTelnet(Telnet):
         return self.get_response()
 
     def get_response(self):
-        _i, _match, resp = Telnet.expect(self, self.prompt, self.timeout)
-        return split(resp, '\n')[:-1]
+        _i, _match, resp = self.expect(self.prompt, self.timeout)
+        return split(resp, "\n")[:-1]
 
 
-def fg_property(path, converter=None):
+def fg_readwrite(path, converter=None):
     """FlightGear property for a given path"""
     converter = converter or (lambda x: x)
     def getter(self):
@@ -70,6 +85,13 @@ def fg_property(path, converter=None):
     def setter(self, value):
         self[path] = converter(value)
     return property(getter, setter)
+
+
+def fg_readonly(path):
+    """FlightGear read-only property for given path"""
+    def getter(self):
+        return self[path]
+    return property(getter)
 
 
 def print_bool(value):
@@ -134,7 +156,11 @@ class FlightGear(object):
         #move to next view
         self.telnet.set( "/command/view/prev", "true")
 
-    starter = fg_property("/controls/switches/starter", print_bool)
-    rudder = fg_property("/controls/flight/rudder")
-    flaps = fg_property("/controls/flight/flaps")
-    throttle = fg_property("/controls/engines/engine/throttle")
+    starter = fg_readwrite("/controls/switches/starter", print_bool)
+    rudder = fg_readwrite("/controls/flight/rudder")
+    flaps = fg_readwrite("/controls/flight/flaps")
+    throttle = fg_readwrite("/controls/engines/engine/throttle")
+
+    @property
+    def position(self):
+        return self.telnet.dump("/position")
