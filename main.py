@@ -1,11 +1,15 @@
 import time
-from flightgear import FlightGear
-from rxfg import RxFlightGear
+from flightgear import FlightGear, RxFlightGear
 from rx import Observable
 from rx.subjects import Subject
 from rx.testing import marbles
 
 def main():
+    '''
+    Will connect to a local flighgear via telnet and power up the
+    engines. Works best with aircraft c172p.
+    '''
+    
     fg = RxFlightGear(FlightGear())
     starter = Subject()
     fg.starter(starter)

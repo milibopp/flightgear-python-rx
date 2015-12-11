@@ -1,0 +1,17 @@
+flightgear-rx - Reactive remote API to FlightGear simulator
+
+1) Installation
+2) Execute unit tests
+
+
+------------------------------------------------------------------------
+Installation
+
+To globally install execute:
+$ python setup.py install
+
+
+------------------------------------------------------------------------
+Execute unit tests
+
+$ python setup.py test
