@@ -1,6 +1,5 @@
 import time
-from flightgear import FlightGear
-from rxfg import RxFlightGear
+from flightgear import FlightGear, RxFlightGear
 from rx import Observable
 from rx.subjects import Subject
 from rx.testing import marbles
